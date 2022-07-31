@@ -1,6 +1,6 @@
 TARGET = json5pp-test
 CXX = g++
-CXXFLAGS = -I.. -std=c++11 -s -O2 -pthread -Wall -Wconversion
+CXXFLAGS = -I../include -std=c++11 -s -O2 -pthread -Wall -Wconversion
 TIMEOUT = 5
 
 ifeq ($(OS),Windows_NT)
@@ -10,7 +10,7 @@ SUFFIX = run
 endif
 
 Q ?= @
-DUT = ../json5pp.hpp
+DUT = ../include/json5pp.hpp
 CASES := $(sort $(wildcard input/*.json) $(wildcard input/*.cpp))
 LOG = result.json
 
