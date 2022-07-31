@@ -1,0 +1,9 @@
+[wrap-git]
+
+directory = json5cpp
+url=git@github.com:randydu/json5pp.git
+revision = head
+clone-recursive = false
+
+[provide]
+json5cpp = json5cpp_dep

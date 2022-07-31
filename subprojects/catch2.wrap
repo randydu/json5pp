@@ -1,0 +1,9 @@
+[wrap-git]
+
+directory = catch2
+url=https://github.com/randydu/meson-subproject-catch2.git
+revision = v2.13.8
+clone-recursive = false
+
+[provide]
+catch2 = catch2_dep
