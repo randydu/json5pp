@@ -1,5 +1,5 @@
 # json5pp
-JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++11**.
+JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++17**.
 
 # Features
 
@@ -11,7 +11,7 @@ JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++11**.
 
 # Requirements
 
-* Compilers with C++11 support
+* Compilers with C++17 support
 
 # License
 
