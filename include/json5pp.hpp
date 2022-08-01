@@ -10,6 +10,8 @@
 #include <cmath>
 #include <limits>
 #include <streambuf>
+#include <concepts>
+#include <variant>
 
 namespace json5pp {
 
@@ -18,8 +20,8 @@ namespace json5pp {
  * See: https://semver.org/
  */
 namespace version {
-static constexpr auto major = 2;
-static constexpr auto minor = 3;
+static constexpr auto major = 3;
+static constexpr auto minor = 0;
 static constexpr auto patch = 0;
 } // namespace version
 
@@ -43,6 +45,21 @@ public:
 };
 
 namespace impl {
+
+template <typename T>
+inline constexpr bool always_false_v = false;
+
+
+template <typename var_t, typename T, typename... Args>
+constexpr bool holds_type(const var_t& var)
+{
+    bool r = std::holds_alternative<T>(var);
+    if constexpr (sizeof...(Args) == 0) {
+        return r;
+    } else {
+        return r || holds_type<var_t, Args...>(var);
+    }
+}
 
 /**
  * @brief Parser/stringifier flags
@@ -121,17 +138,6 @@ public:
  */
 class value
 {
-private:
-    enum type_enum {
-        TYPE_NULL,
-        TYPE_BOOLEAN,
-        TYPE_NUMBER,
-        TYPE_STRING,
-        TYPE_ARRAY,
-        TYPE_OBJECT,
-        TYPE_INTEGER,
-    } type;
-
 public:
     using null_type = std::nullptr_t;
     using boolean_type = bool;
@@ -145,6 +151,17 @@ public:
     using pair_type = object_type::value_type;
     using json_type = std::string;
 
+    using content_t = std::variant<
+        std::monostate,
+        bool,
+        int,
+        long,
+        float,
+        double,
+        std::string,
+        array_type,
+        object_type>;
+
     /*================================================================================
      * Construction
      */
@@ -152,155 +169,43 @@ public:
     /**
      * @brief JSON value default constructor for "null" type.
      */
-    value() noexcept : value(nullptr) {}
+    value() noexcept {}
 
     /**
      * @brief JSON value constructor for "null" type.
      * @param null A dummy argument for nullptr
      */
-    value(null_type null) noexcept : type(TYPE_NULL) {}
+    value(std::nullptr_t) noexcept {}
 
     /**
      * @brief JSON value constructor for "boolean" type.
      * @param boolean A boolean value to be set.
      */
-    value(boolean_type boolean) noexcept : type(TYPE_BOOLEAN), content(boolean) {}
-
-    /**
-     * @brief JSON value constructor for "number" type.
-     * @param number A number to be set.
-     */
-    value(number_type number) noexcept : type(TYPE_NUMBER), content(number) {}
-
-    /**
-     * @brief JSON value constructor with integer for "number" type.
-     * @param number An integer value to be set.
-     */
-    value(integer_type integer) noexcept : type(TYPE_INTEGER), content(integer) {}
+    template <typename T>
+    value(T&& v) noexcept : content(std::forward<T>(v))
+    {
+    }
 
     /**
      * @brief JSON value constructor for "string" type.
      * @param string A string value to be set.
      */
-    value(const string_type& string) : type(TYPE_STRING)
-    {
-        new (&content.string) string_type(string);
-    }
-
-    /**
-     * @brief JSON value constructor for "string" type. (const char* version)
-     * @param string A string value to be set.
-     */
-    value(string_p_type string) : type(TYPE_STRING)
-    {
-        new (&content.string) string_type(string);
-    }
+    value(const char* str) : content(std::string(str)) {}
 
     /**
      * @brief JSON value constructor for "array" type.
      * @param array An initializer list of elements.
      */
-    explicit value(std::initializer_list<value> array) : type(TYPE_ARRAY)
-    {
-        new (&content.array) array_type(array);
-    }
+    explicit value(std::initializer_list<value> array) : content(std::move(array)) {}
 
     /**
      * @brief JSON value constructor with key,value pair for "object" type.
      * @param elements An initializer list of key,value pair.
      */
-    explicit value(std::initializer_list<pair_type> elements) : type(TYPE_OBJECT)
-    {
-        new (&content.object) object_type(elements);
-    }
-
-    /**
-     * @brief JSON value copy constructor.
-     * @param src A value to be copied from.
-     */
-    value(const value& src) : type(TYPE_NULL)
-    {
-        *this = src;
-    }
-
-    /**
-     * @brief JSON value move constructor.
-     * @param src A value to be moved from.
-     */
-    value(value&& src) : type(src.type)
-    {
-        switch (type) {
-        case TYPE_BOOLEAN:
-            new (&content.boolean) boolean_type(std::move(src.content.boolean));
-            break;
-        case TYPE_NUMBER:
-            new (&content.number) number_type(std::move(src.content.number));
-            break;
-        case TYPE_INTEGER:
-            new (&content.integer) integer_type(std::move(src.content.integer));
-            break;
-        case TYPE_STRING:
-            new (&content.string) string_type(std::move(src.content.string));
-            break;
-        case TYPE_ARRAY:
-            new (&content.array) array_type(std::move(src.content.array));
-            break;
-        case TYPE_OBJECT:
-            new (&content.object) object_type(std::move(src.content.object));
-            break;
-        default:
-            break;
-        }
-        src.type = TYPE_NULL;
-    }
+    explicit value(std::initializer_list<pair_type> elements) : content(std::move(elements)) {}
 
     friend value array(std::initializer_list<value> elements);
     friend value object(std::initializer_list<pair_type> elements);
-
-    /*================================================================================
-     * Destruction
-     */
-public:
-    /**
-     * @brief JSON value destructor.
-     */
-    ~value()
-    {
-        release();
-    }
-
-private:
-    /**
-     * @brief Release content
-     *
-     * @param new_type A new type id
-     */
-    void release(type_enum new_type = TYPE_NULL)
-    {
-        switch (type) {
-        case TYPE_BOOLEAN:
-            content.boolean.~boolean_type();
-            break;
-        case TYPE_NUMBER:
-            content.number.~number_type();
-            break;
-        case TYPE_INTEGER:
-            content.integer.~integer_type();
-            break;
-        case TYPE_STRING:
-            content.string.~string_type();
-            break;
-        case TYPE_ARRAY:
-            content.array.~array_type();
-            break;
-        case TYPE_OBJECT:
-            content.object.~object_type();
-            break;
-        default:
-            break;
-        }
-        type = new_type;
-    }
 
     /*================================================================================
      * Type checks
@@ -309,37 +214,37 @@ public:
     /**
      * @brief Check if stored value is null.
      */
-    bool is_null() const noexcept { return type == TYPE_NULL; }
+    constexpr bool is_null() const noexcept { return std::holds_alternative<std::monostate>(content); }
 
     /**
      * @brief Check if type of stored value is boolean.
      */
-    bool is_boolean() const noexcept { return type == TYPE_BOOLEAN; }
+    constexpr bool is_boolean() const noexcept { return std::holds_alternative<bool>(content); }
 
     /**
      * @brief Check if type of stored value is number (includes integer).
      */
-    bool is_number() const noexcept { return (type == TYPE_NUMBER) || (type == TYPE_INTEGER); }
+    constexpr bool is_number() const noexcept { return impl::holds_type<content_t, int, long, float, double>(content); }
 
     /**
      * @brief Check if type of stored value is integer.
      */
-    bool is_integer() const noexcept { return type == TYPE_INTEGER; }
+    constexpr bool is_integer() const noexcept { return impl::holds_type<content_t, int, long>(content); }
 
     /**
      * @brief Check if type of stored value is string.
      */
-    bool is_string() const noexcept { return type == TYPE_STRING; }
+    constexpr bool is_string() const noexcept { return std::holds_alternative<std::string>(content); }
 
     /**
      * @brief Check if type of stored value is array.
      */
-    bool is_array() const noexcept { return type == TYPE_ARRAY; }
+    constexpr bool is_array() const noexcept { return std::holds_alternative<array_type>(content); }
 
     /**
      * @brief Check if type of stored value is object.
      */
-    bool is_object() const noexcept { return type == TYPE_OBJECT; }
+    constexpr bool is_object() const noexcept { return std::holds_alternative<object_type>(content); }
 
     /*================================================================================
      * Type casts
@@ -350,9 +255,9 @@ public:
      *
      * @throws std::bad_cast if the value is not a null
      */
-    null_type as_null() const
+    constexpr null_type as_null() const
     {
-        if (type != TYPE_NULL) {
+        if (!is_null()) {
             throw std::bad_cast();
         }
         return nullptr;
@@ -363,12 +268,12 @@ public:
      *
      * @throws std::bad_cast if the value is not a boolean
      */
-    boolean_type as_boolean() const
+    constexpr bool as_boolean() const
     {
-        if (type != TYPE_BOOLEAN) {
+        if (!is_boolean()) {
             throw std::bad_cast();
         }
-        return content.boolean;
+        return std::get<bool>(content);
     }
 
     /**
@@ -378,12 +283,22 @@ public:
      */
     number_type as_number() const
     {
-        if (type == TYPE_INTEGER) {
-            return static_cast<number_type>(content.integer);
-        } else if (type != TYPE_NUMBER) {
-            throw std::bad_cast();
-        }
-        return content.number;
+        number_type r;
+        std::visit(([&](auto&& v) {
+                       using T = std::decay_t<decltype(v)>;
+                       if constexpr (
+                           std::is_same_v<T, int> ||
+                           std::is_same_v<T, long> ||
+                           std::is_same_v<T, float> ||
+                           std::is_same_v<T, double>)
+                           r = static_cast<number_type>(v);
+                       else {
+                           throw std::bad_cast();
+                       }
+                   }),
+                   content);
+
+        return r;
     }
 
     /**
@@ -393,12 +308,22 @@ public:
      */
     integer_type as_integer() const
     {
-        if (type == TYPE_NUMBER) {
-            return static_cast<integer_type>(content.number);
-        } else if (type != TYPE_INTEGER) {
-            throw std::bad_cast();
-        }
-        return content.integer;
+        integer_type r;
+        std::visit(([&](auto&& v) {
+                       using T = std::decay_t<decltype(v)>;
+                       if constexpr (
+                           std::is_same_v<T, int> ||
+                           std::is_same_v<T, long> ||
+                           std::is_same_v<T, float> ||
+                           std::is_same_v<T, double>)
+                           r = static_cast<integer_type>(v);
+                       else {
+                           throw std::bad_cast();
+                       }
+                   }),
+                   content);
+
+        return r;
     }
 
     /**
@@ -406,12 +331,10 @@ public:
      *
      * @throws std::bad_cast if the value is not a string
      */
-    const string_type& as_string() const
+    const std::string& as_string() const
     {
-        if (type != TYPE_STRING) {
-            throw std::bad_cast();
-        }
-        return content.string;
+        if (!is_string()) throw std::bad_cast();
+        return std::get<std::string>(content);
     }
 
     /**
@@ -421,10 +344,8 @@ public:
      */
     string_type& as_string()
     {
-        if (type != TYPE_STRING) {
-            throw std::bad_cast();
-        }
-        return content.string;
+        if (!is_string()) throw std::bad_cast();
+        return std::get<std::string>(content);
     }
 
     /**
@@ -434,10 +355,8 @@ public:
      */
     const array_type& as_array() const
     {
-        if (type != TYPE_ARRAY) {
-            throw std::bad_cast();
-        }
-        return content.array;
+        if (!is_array()) throw std::bad_cast();
+        return std::get<array_type>(content);
     }
 
     /**
@@ -447,10 +366,8 @@ public:
      */
     array_type& as_array()
     {
-        if (type != TYPE_ARRAY) {
-            throw std::bad_cast();
-        }
-        return content.array;
+        if (!is_array()) throw std::bad_cast();
+        return std::get<array_type>(content);
     }
 
     /**
@@ -460,10 +377,8 @@ public:
      */
     const object_type& as_object() const
     {
-        if (type != TYPE_OBJECT) {
-            throw std::bad_cast();
-        }
-        return content.object;
+        if (!is_object()) throw std::bad_cast();
+        return std::get<object_type>(content);
     }
 
     /**
@@ -473,33 +388,23 @@ public:
      */
     object_type& as_object()
     {
-        if (type != TYPE_OBJECT) {
-            throw std::bad_cast();
-        }
-        return content.object;
+        if (!is_object()) throw std::bad_cast();
+        return std::get<object_type>(content);
     }
 
     /*================================================================================
      * Truthy/falsy test
      */
-    operator bool() const
+    constexpr operator bool() const
     {
-        switch (type) {
-        case TYPE_BOOLEAN:
-            return content.boolean;
-        case TYPE_NUMBER:
-            return (content.number != 0) && (!std::isnan(content.number));
-        case TYPE_INTEGER:
-            return (content.integer != 0);
-        case TYPE_STRING:
-            return !content.string.empty();
-        case TYPE_ARRAY:
-        case TYPE_OBJECT:
-            return true;
-        case TYPE_NULL:
-        default:
-            return false;
+        if (is_null()) return false;
+        if (is_boolean()) return std::get<bool>(content);
+        if (is_number()) {
+            auto v = this->as_number();
+            return (v != 0) && (!std::isnan(v));
         }
+        if (is_string()) return !std::get<std::string>(content).empty();
+        return true; // array || object
     }
 
     /*================================================================================
@@ -507,9 +412,10 @@ public:
      */
     const value& at(const int index, const value& default_value) const
     {
-        if (type == TYPE_ARRAY) {
-            if ((0 <= index) && (index < (int)content.array.size())) {
-                return content.array[index];
+        if (is_array()) {
+            const auto& ar = std::get<array_type>(content);
+            if ((0 <= index) && (index < (int)ar.size())) {
+                return ar[index];
             }
         }
         return default_value;
@@ -531,9 +437,10 @@ public:
      */
     const value& at(const string_type& key, const value& default_value) const
     {
-        if (type == TYPE_OBJECT) {
-            auto iter = content.object.find(key);
-            if (iter != content.object.end()) {
+        if (is_object()) {
+            const auto& obj = std::get<object_type>(content);
+            auto iter = obj.find(key);
+            if (iter != obj.end()) {
                 return iter->second;
             }
         }
@@ -567,139 +474,6 @@ public:
     }
 
     /*================================================================================
-     * Assignment (Copying)
-     */
-public:
-    /**
-     * @brief Copy from another JSON value object.
-     * @param src A value object.
-     */
-    value& operator=(const value& src)
-    {
-        release(src.type);
-        switch (type) {
-        case TYPE_BOOLEAN:
-            new (&content.boolean) boolean_type(src.content.boolean);
-            break;
-        case TYPE_NUMBER:
-            new (&content.number) number_type(src.content.number);
-            break;
-        case TYPE_INTEGER:
-            new (&content.integer) integer_type(src.content.integer);
-            break;
-        case TYPE_STRING:
-            new (&content.string) string_type(src.content.string);
-            break;
-        case TYPE_ARRAY:
-            new (&content.array) array_type(src.content.array);
-            break;
-        case TYPE_OBJECT:
-            new (&content.object) object_type(src.content.object);
-            break;
-        default:
-            break;
-        }
-        return *this;
-    }
-
-    /**
-     * @brief Assign null value.
-     * @param null A dummy value.
-     */
-    value& operator=(null_type null)
-    {
-        release();
-        return *this;
-    }
-
-    /**
-     * @brief Assign boolean value.
-     * @param boolean A boolean value to be set.
-     */
-    value& operator=(boolean_type boolean)
-    {
-        release(TYPE_BOOLEAN);
-        new (&content.boolean) boolean_type(boolean);
-        return *this;
-    }
-
-    /**
-     * @brief Assign number value.
-     * @param number A number to be set.
-     */
-    value& operator=(number_type number)
-    {
-        release(TYPE_NUMBER);
-        new (&content.number) number_type(number);
-        return *this;
-    }
-
-    /**
-     * @brief Assign number value by integer type.
-     * @param integer A integer number to be set.
-     */
-    value& operator=(integer_type integer)
-    {
-        release(TYPE_INTEGER);
-        new (&content.integer) integer_type(integer);
-        return *this;
-    }
-
-    /**
-     * @brief Assign string value.
-     * @param string A string to be set.
-     */
-    value& operator=(const string_type& string)
-    {
-        if (type == TYPE_STRING) {
-            content.string = string;
-        } else {
-            release(TYPE_STRING);
-            new (&content.string) string_type(string);
-        }
-        return *this;
-    }
-
-    /**
-     * @brief Assign string value from const char*
-     * @param string A string to be set.
-     */
-    value& operator=(string_p_type string)
-    {
-        return (*this = string_type(string));
-    }
-
-    /**
-     * @brief Assign array value by deep copy.
-     * @param array An array to be set.
-     */
-    value& operator=(std::initializer_list<value> array)
-    {
-        if (type == TYPE_ARRAY) {
-            content.array = array;
-        } else {
-            release(TYPE_ARRAY);
-            new (&content.array) array_type(array);
-        }
-        return *this;
-    }
-
-    /**
-     * @brief Assign object value by deep copy.
-     * @param object An object to be set.
-     */
-    value& operator=(std::initializer_list<value::pair_type> elements)
-    {
-        if (type == TYPE_OBJECT) {
-            content.object = elements;
-        } else {
-            release(TYPE_OBJECT);
-            new (&content.object) object_type(elements);
-        }
-        return *this;
-    }
-
-    /*================================================================================
      * Parse
      */
 private:
@@ -723,23 +497,8 @@ public:
     template <class... T>
     json_type stringify5(const T&... args) const;
 
-    /*================================================================================
-     * Internal data structure
-     */
 private:
-    union content {
-        boolean_type boolean;
-        number_type number;
-        integer_type integer;
-        string_type string;
-        array_type array;
-        object_type object;
-        content() {}
-        content(boolean_type boolean) : boolean(boolean) {}
-        content(number_type number) : number(number) {}
-        content(integer_type integer) : integer(integer) {}
-        ~content() {}
-    } content;
+    content_t content;
 };
 
 /**
@@ -750,10 +509,7 @@ private:
  */
 inline value array(std::initializer_list<value> elements)
 {
-    value v;
-    v.release(value::TYPE_ARRAY);
-    new (&v.content.array) value::array_type(elements);
-    return v;
+    return value(std::move(elements));
 }
 
 /**
@@ -764,10 +520,7 @@ inline value array(std::initializer_list<value> elements)
  */
 inline value object(std::initializer_list<value::pair_type> elements)
 {
-    value v;
-    v.release(value::TYPE_OBJECT);
-    new (&v.content.object) value::object_type(elements);
-    return v;
+    return value(std::move(elements));
 }
 
 namespace impl {
@@ -1597,86 +1350,85 @@ private:
      */
     void stringify_value(const value& v, const value::json_type& indent)
     {
-        switch (v.type) {
-        case value::TYPE_BOOLEAN:
-            ostream << (v.content.boolean ? "true" : "false");
-            break;
-        case value::TYPE_NUMBER:
-            if (std::isnan(v.content.number)) {
-                if (!has_flag(flags::not_a_number)) {
-                    goto null;
-                }
-                ostream << "NaN";
-            } else if (!std::isfinite(v.content.number)) {
-                if (!has_flag(flags::infinity_number)) {
-                    goto null;
-                }
-                ostream << ((v.content.number > 0) ? "infinity" : "-infinity");
-            } else {
-                ostream << v.content.number;
-            }
-            break;
-        case value::TYPE_INTEGER:
-            ostream << v.content.integer;
-            break;
-        case value::TYPE_STRING:
-            stringify_string(v.content.string);
-            break;
-        case value::TYPE_ARRAY:
-            if (v.content.array.empty()) {
-                ostream << "[]";
-            } else if (I == 0) {
-                const char* delim = "[";
-                for (const auto& item : v.content.array) {
-                    ostream << delim;
-                    stringify_value(item, indent);
-                    delim = ",";
-                }
-                ostream << "]";
-            } else {
-                const char* const newline = get_newline();
-                const char* delim = "[";
-                const value::json_type inner_indent = indent + get_indent();
-                for (const auto& item : v.content.array) {
-                    ostream << delim << newline << inner_indent;
-                    stringify_value(item, inner_indent);
-                    delim = ",";
-                }
-                ostream << newline << indent << "]";
-            }
-            break;
-        case value::TYPE_OBJECT:
-            if (v.content.object.empty()) {
-                ostream << "{}";
-            } else if (I == 0) {
-                const char* delim = "{";
-                for (const auto& pair : v.content.object) {
-                    ostream << delim;
-                    stringify_string(pair.first);
-                    ostream << ":";
-                    stringify_value(pair.second, indent);
-                    delim = ",";
-                }
-                ostream << "}";
-            } else {
-                const char* const newline = get_newline();
-                const char* delim = "{";
-                const value::json_type inner_indent = indent + get_indent();
-                for (const auto& pair : v.content.object) {
-                    ostream << delim << newline << inner_indent;
-                    stringify_string(pair.first);
-                    ostream << ": ";
-                    stringify_value(pair.second, inner_indent);
-                    delim = ",";
-                }
-                ostream << newline << indent << "}";
-            }
-            break;
-        default:
-        null:
-            ostream << "null";
-            break;
-        }
+        std::visit(([&](auto&& arg) {
+                       using T = std::decay_t<decltype(arg)>;
+
+                       if constexpr (std::is_same_v<T, std::monostate>) {
+                           ostream << "null";
+                       } else if constexpr (std::is_same_v<T, bool>) {
+                           ostream << (arg ? "true" : "false");
+                       } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, long> || std::is_same_v<T, float> || std::is_same_v<T, double>) {
+                           if (std::isnan(arg)) {
+                               if (!has_flag(flags::not_a_number)) {
+                                   ostream << "null";
+                               } else {
+                                   ostream << "NaN";
+                               }
+                           } else if (!std::isfinite(arg)) {
+                               if (!has_flag(flags::infinity_number)) {
+                                   ostream << "null";
+                               } else {
+                                   ostream << ((arg > 0) ? "infinity" : "-infinity");
+                               }
+                           } else {
+                               ostream << arg;
+                           }
+                       } else if constexpr (std::is_same_v<T, std::string>) {
+                           stringify_string(std::get<std::string>(v.content));
+                       } else if constexpr (std::is_same_v<T, value::object_type>) {
+                           if (arg.empty()) {
+                               ostream << "{}";
+                           } else if (I == 0) {
+                               const char* delim = "{";
+                               for (const auto& pair : arg) {
+                                   ostream << delim;
+                                   stringify_string(pair.first);
+                                   ostream << ":";
+                                   stringify_value(pair.second, indent);
+                                   delim = ",";
+                               }
+                               ostream << "}";
+                           } else {
+                               const char* const newline = get_newline();
+                               const char* delim = "{";
+                               const value::json_type inner_indent = indent + get_indent();
+                               for (const auto& pair : arg) {
+                                   ostream << delim << newline << inner_indent;
+                                   stringify_string(pair.first);
+                                   ostream << ": ";
+                                   stringify_value(pair.second, inner_indent);
+                                   delim = ",";
+                               }
+                               ostream << newline << indent << "}";
+                           }
+                       } else if constexpr (std::is_same_v<T, value::array_type>) {
+                           if (arg.empty()) {
+                               ostream << "[]";
+                           } else if (I == 0) {
+                               const char* delim = "[";
+                               for (const auto& item : arg) {
+                                   ostream << delim;
+                                   stringify_value(item, indent);
+                                   delim = ",";
+                               }
+                               ostream << "]";
+                           } else {
+                               const char* const newline = get_newline();
+                               const char* delim = "[";
+                               const value::json_type inner_indent = indent + get_indent();
+                               for (const auto& item : arg) {
+                                   ostream << delim << newline << inner_indent;
+                                   stringify_value(item, inner_indent);
+                                   delim = ",";
+                               }
+                               ostream << newline << indent << "]";
+                           }
+
+                       } else {
+                           static_assert(always_false_v<T>, "unknown type");
+                       }
+                   }),
+                   v.content);
     }
 
     /**
@@ -1794,18 +1546,10 @@ stringifier<0, I> operator<<(std::ostream& ostream, const manipulator_indent<I>&
 template <class S, class T, class... Args>
 static void flow_stringifier(S stringifier, T& value, const Args&... args)
 {
-    flow_stringifier(stringifier << value, args...);
-}
-
-/**
- * @brief Recursive expansion stopper for flow_stringifier
- *
- * @tparam S A typename of stringifier
- * @param stringifier A stringifier
- */
-template <class S>
-static void flow_stringifier(const S& stringifier)
-{
+    auto r = stringifier << value;
+    if constexpr (sizeof...(Args) > 0) {
+        flow_stringifier(std::move(r), args...);
+    }
 }
 
 class membuf : public std::streambuf

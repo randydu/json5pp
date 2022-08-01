@@ -75,3 +75,31 @@ TEST_CASE("boolean", tag)
         }
     }
 }
+
+TEST_CASE("integer", tag)
+{
+    SECTION("int")
+    {
+        {
+            auto v = json5pp::value(1);
+
+            CHECK(v.is_integer());
+            CHECK(v.as_integer() == 1);
+        }
+        {
+            int x = 1;
+            auto v = json5pp::value(x);
+
+            CHECK(v.is_integer());
+            CHECK(v.as_integer() == 1);
+        }
+    }
+    SECTION("int64_t")
+    {
+        int64_t x{1};
+        auto v = json5pp::value(x);
+
+        CHECK(v.is_integer());
+        CHECK(v.as_integer() == 1);
+    }
+}
