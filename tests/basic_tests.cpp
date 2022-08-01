@@ -80,18 +80,66 @@ TEST_CASE("integer", tag)
 {
     SECTION("int")
     {
+        SECTION("constructor")
         {
-            auto v = json5pp::value(1);
+            { // int&&
+                auto v = json5pp::value(1);
 
-            CHECK(v.is_integer());
-            CHECK(v.as_integer() == 1);
+                CHECK(v.is_integer());
+                CHECK(v.as_integer() == 1);
+            }
+            { // int&
+                int x = 1;
+                auto v = json5pp::value(x);
+
+                CHECK(v.is_integer());
+                CHECK(v.as_integer() == 1);
+            }
         }
+        SECTION("copy constructor")
         {
-            int x = 1;
-            auto v = json5pp::value(x);
+            {
+                json5pp::value v = 1;
+                CHECK(v.is_integer());
+                CHECK(v.as_integer() == 1);
+            }
+            {
+                int x = 1;
+                json5pp::value v = x;
+                CHECK(v.is_integer());
+                CHECK(v.as_integer() == 1);
+            }
+            {
+                json5pp::value x = 1;
+                json5pp::value y = x;
 
-            CHECK(v.is_integer());
-            CHECK(v.as_integer() == 1);
+                CHECK(x.is_integer());
+                CHECK(x.as_integer() == 1);
+                CHECK(y.is_integer());
+                CHECK(y.as_integer() == 1);
+            }
+        }
+        SECTION("copy operator")
+        {
+            json5pp::value x = 1;
+            json5pp::value y;
+            y = x;
+
+            CHECK(x.is_integer());
+            CHECK(x.as_integer() == 1);
+            CHECK(y.is_integer());
+            CHECK(y.as_integer() == 1);
+        }
+        SECTION("move operator")
+        {
+            json5pp::value x = 1;
+            json5pp::value y;
+            y = std::move(x);
+
+            CHECK(x.is_integer()); //after move, the original value is not touched
+
+            CHECK(y.is_integer());
+            CHECK(y.as_integer() == 1);
         }
     }
     SECTION("int64_t")
@@ -101,5 +149,32 @@ TEST_CASE("integer", tag)
 
         CHECK(v.is_integer());
         CHECK(v.as_integer() == 1);
+    }
+
+    SECTION("char")
+    {
+        json5pp::value v('a');
+
+        CHECK(v.is_integer());
+        CHECK(v.as_integer() == 'a');
+    }
+    
+}
+
+TEST_CASE("string", tag)
+{
+    SECTION("ascii"){
+        std::string hello ("Hello!");
+        json5pp::value v(hello);
+
+        CHECK(v.is_string());
+        CHECK(v.as_string() == hello);
+    }
+    SECTION("utf8"){
+        auto s = u8"fooあ123";
+        json5pp::value v = s;
+
+        CHECK(v.is_string());
+        CHECK(v.as_string() == (const char*)s);
     }
 }

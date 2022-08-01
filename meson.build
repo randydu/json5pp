@@ -1,4 +1,4 @@
-project('json5cpp', ['cpp'], meson_version: '>=0.58.0', version: files('VERSION'), default_options : ['cpp_std=c++17', 'werror=true'])
+project('json5cpp', ['cpp'], meson_version: '>=0.58.0', version: files('VERSION'), default_options : ['cpp_std=c++20', 'werror=true'])
 
 # stop after 1 errors
 if meson.get_compiler('cpp').get_id() == 'gcc'

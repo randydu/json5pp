@@ -11,7 +11,7 @@ JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++17**.
 
 # Requirements
 
-* Compilers with C++17 support
+* Compilers with C++20 support
 
 # License
 

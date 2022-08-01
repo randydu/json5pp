@@ -50,16 +50,33 @@ template <typename T>
 inline constexpr bool always_false_v = false;
 
 
-template <typename var_t, typename T, typename... Args>
-constexpr bool holds_type(const var_t& var)
+// Test if a variant holds any of the types
+template <typename T, typename... Args, typename var_t>
+constexpr bool hold_types(const var_t& var)
 {
     bool r = std::holds_alternative<T>(var);
     if constexpr (sizeof...(Args) == 0) {
         return r;
     } else {
-        return r || holds_type<var_t, Args...>(var);
+        return r || hold_types<Args...>(var);
     }
 }
+
+// Test if T is the same as any of the multiple types
+// ex: any_of_types<T, int, long>() -> true if T is int or long.
+template <typename T, typename S, typename... Args>
+constexpr bool any_of_types()
+{
+    bool r = std::is_same_v<T, S>;
+    if constexpr (sizeof...(Args) == 0) {
+        return r;
+    } else {
+        return r || any_of_types<T, Args...>();
+    }
+}
+
+template <typename T, typename... Args>
+inline constexpr bool any_of_types_v = any_of_types<T, Args...>();
 
 /**
  * @brief Parser/stringifier flags
@@ -138,7 +155,6 @@ public:
  */
 class value
 {
-public:
     using null_type = std::nullptr_t;
     using boolean_type = bool;
     using number_type = double;
@@ -151,25 +167,17 @@ public:
     using pair_type = object_type::value_type;
     using json_type = std::string;
 
-    using content_t = std::variant<
-        std::monostate,
-        bool,
-        int,
-        long,
-        float,
-        double,
-        std::string,
-        array_type,
-        object_type>;
-
     /*================================================================================
      * Construction
      */
 public:
-    /**
-     * @brief JSON value default constructor for "null" type.
-     */
-    value() noexcept {}
+    // Explicitly declare that we are happy with the default behavior
+    value() = default;
+    value(const value&) = default;
+    value(value&&) = default;
+    value& operator=(const value&) = default;
+    value& operator=(value&&) = default;
+    ~value() = default;
 
     /**
      * @brief JSON value constructor for "null" type.
@@ -182,15 +190,19 @@ public:
      * @param boolean A boolean value to be set.
      */
     template <typename T>
-    value(T&& v) noexcept : content(std::forward<T>(v))
-    {
-    }
+    requires std::integral<std::remove_cvref_t<T>> || std::floating_point<std::remove_cvref_t<T>> || std::is_same_v<std::remove_cvref_t<T>, std::string>
+    value(T&& v)
+    noexcept : content(std::forward<T>(v)) {}
 
     /**
      * @brief JSON value constructor for "string" type.
      * @param string A string value to be set.
      */
-    value(const char* str) : content(std::string(str)) {}
+    value(const char* pchar) : content(std::string(pchar)) {}
+    //accept utf8 literal (u8"fooあ123") without type casting on the caller site.
+    value(const char8_t* pchar) : content(std::string((const char*)pchar)) {}
+
+    value(std::string_view sv) : content(std::string(sv)) {}
 
     /**
      * @brief JSON value constructor for "array" type.
@@ -210,7 +222,6 @@ public:
     /*================================================================================
      * Type checks
      */
-public:
     /**
      * @brief Check if stored value is null.
      */
@@ -224,12 +235,12 @@ public:
     /**
      * @brief Check if type of stored value is number (includes integer).
      */
-    constexpr bool is_number() const noexcept { return impl::holds_type<content_t, int, long, float, double>(content); }
+    constexpr bool is_number() const noexcept { return impl::hold_types<int, long, float, double>(content); }
 
     /**
      * @brief Check if type of stored value is integer.
      */
-    constexpr bool is_integer() const noexcept { return impl::holds_type<content_t, int, long>(content); }
+    constexpr bool is_integer() const noexcept { return impl::hold_types<int, long>(content); }
 
     /**
      * @brief Check if type of stored value is string.
@@ -249,7 +260,6 @@ public:
     /*================================================================================
      * Type casts
      */
-public:
     /**
      * @brief Cast to null
      *
@@ -286,11 +296,7 @@ public:
         number_type r;
         std::visit(([&](auto&& v) {
                        using T = std::decay_t<decltype(v)>;
-                       if constexpr (
-                           std::is_same_v<T, int> ||
-                           std::is_same_v<T, long> ||
-                           std::is_same_v<T, float> ||
-                           std::is_same_v<T, double>)
+                       if constexpr (impl::any_of_types_v<T, int, long, float, double>)
                            r = static_cast<number_type>(v);
                        else {
                            throw std::bad_cast();
@@ -311,11 +317,7 @@ public:
         integer_type r;
         std::visit(([&](auto&& v) {
                        using T = std::decay_t<decltype(v)>;
-                       if constexpr (
-                           std::is_same_v<T, int> ||
-                           std::is_same_v<T, long> ||
-                           std::is_same_v<T, float> ||
-                           std::is_same_v<T, double>)
+                       if constexpr (impl::any_of_types_v<T, int, long, float, double>)
                            r = static_cast<integer_type>(v);
                        else {
                            throw std::bad_cast();
@@ -473,6 +475,12 @@ public:
         return at(string_type(key));
     }
 
+    template <class... T>
+    auto stringify(const T&... args) const;
+
+    template <class... T>
+    auto stringify5(const T&... args) const;
+
     /*================================================================================
      * Parse
      */
@@ -490,14 +498,17 @@ private:
 
     friend impl::stringifier<0, 0> operator<<(std::ostream& ostream, const value& v);
 
-public:
-    template <class... T>
-    json_type stringify(const T&... args) const;
+    using content_t = std::variant<
+        std::monostate,
+        bool,
+        int,
+        long,
+        float,
+        double,
+        std::string,
+        array_type,
+        object_type>;
 
-    template <class... T>
-    json_type stringify5(const T&... args) const;
-
-private:
     content_t content;
 };
 
@@ -1357,7 +1368,7 @@ private:
                            ostream << "null";
                        } else if constexpr (std::is_same_v<T, bool>) {
                            ostream << (arg ? "true" : "false");
-                       } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, long> || std::is_same_v<T, float> || std::is_same_v<T, double>) {
+                       } else if constexpr (impl::any_of_types_v<T, int, long, float, double>){
                            if (std::isnan(arg)) {
                                if (!has_flag(flags::not_a_number)) {
                                    ostream << "null";
@@ -1546,9 +1557,9 @@ stringifier<0, I> operator<<(std::ostream& ostream, const manipulator_indent<I>&
 template <class S, class T, class... Args>
 static void flow_stringifier(S stringifier, T& value, const Args&... args)
 {
-    auto r = stringifier << value;
+    auto& r = stringifier << value;
     if constexpr (sizeof...(Args) > 0) {
-        flow_stringifier(std::move(r), args...);
+        flow_stringifier(r, args...);
     }
 }
 
@@ -1816,7 +1827,7 @@ inline value parse(std::istream& istream, bool finished = true)
  * @param string A string to be parsed
  * @return JSON value
  */
-inline value parse(const value::json_type& string)
+inline value parse(const std::string& string)
 {
     std::istringstream istream(string);
     return parse(istream, true);
@@ -1860,7 +1871,7 @@ inline value parse5(std::istream& istream, bool finished = true)
  * @param string A string to be parsed
  * @return JSON value
  */
-inline value parse5(const value::json_type& string)
+inline value parse5(const std::string& string)
 {
     std::istringstream istream(string);
     return parse5(istream, true);
@@ -1888,7 +1899,7 @@ inline value parse5(const void* pointer, std::size_t length)
  * @return JSON string
  */
 template <class... T>
-value::json_type stringify(const value& v, const T&... args)
+auto stringify(const value& v, const T&... args)
 {
     std::ostringstream ostream;
     impl::flow_stringifier(ostream << rule::ecma404(), args..., v);
@@ -1904,7 +1915,7 @@ value::json_type stringify(const value& v, const T&... args)
  * @return JSON string
  */
 template <class... T>
-value::json_type stringify5(const value& v, const T&... args)
+auto stringify5(const value& v, const T&... args)
 {
     std::ostringstream ostream;
     impl::flow_stringifier(ostream << rule::json5(), args..., v);
@@ -1919,7 +1930,7 @@ value::json_type stringify5(const value& v, const T&... args)
  * @return JSON string
  */
 template <class... T>
-value::json_type value::stringify(const T&... args) const
+auto value::stringify(const T&... args) const
 {
     return json5pp::stringify(*this, args...);
 }
@@ -1932,7 +1943,7 @@ value::json_type value::stringify(const T&... args) const
  * @return JSON string
  */
 template <class... T>
-value::json_type value::stringify5(const T&... args) const
+auto value::stringify5(const T&... args) const
 {
     return json5pp::stringify5(*this, args...);
 }
