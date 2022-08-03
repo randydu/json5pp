@@ -123,6 +123,7 @@ TEST_CASE("<<", tag)
         CHECK(v == 1);
         CHECK(1 == v);
         CHECK(v > 0);
+        CHECK(v > 0.5);
         CHECK(v >= 0);
         CHECK(v < 2);
         CHECK(v <= 2);

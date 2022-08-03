@@ -445,6 +445,13 @@ CHECK(v == 123);
 
 CHECK(v.get<int>() = 123);
 
+// Compare
+json5pp::value a(1), b(2);
+CHECK(a < b);
+CHECK(a <= b);
+CHECK(a > 0);
+CHECK(a < 1.5);
+
 
 // Access string
 json5pp::value c("foo");
