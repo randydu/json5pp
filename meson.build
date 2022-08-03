@@ -2,7 +2,7 @@ project('json5cpp', ['cpp'], meson_version: '>=0.58.0', version: files('VERSION'
 
 # stop after 1 errors
 if meson.get_compiler('cpp').get_id() == 'gcc'
-    add_global_arguments(['-fmax-errors=1', '-fdiagnostics-show-option'], language: ['cpp']) 
+    add_project_arguments(['-fmax-errors=1', '-fdiagnostics-show-option'], language: ['cpp']) 
 endif
 
 # head-only

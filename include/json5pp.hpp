@@ -186,8 +186,15 @@ public:
     value(std::nullptr_t) noexcept {}
 
     /**
-     * @brief JSON value constructor for "boolean" type.
-     * @param boolean A boolean value to be set.
+     * @brief JSON value constructor for all single value built-in data types (bool, int, long, float, double, std::string)
+     * @param T A value to be set.
+     *
+     * Implicit constructor, so be aware of the following differences:
+     *
+     *   value x(1);    //CHECK(x.is_integer());
+     *   value x = 1;   //CHECK(x.is_integer());
+     *   value x{1};    //CHECK(x.is_array());
+     *   value x = {1}; //not compile due to explicit constructor of initializer_list
      */
     template <typename T>
     requires std::integral<std::remove_cvref_t<T>> || std::floating_point<std::remove_cvref_t<T>> || std::is_same_v<std::remove_cvref_t<T>, std::string>
@@ -199,7 +206,7 @@ public:
      * @param string A string value to be set.
      */
     value(const char* pchar) : content(std::string(pchar)) {}
-    //accept utf8 literal (u8"fooあ123") without type casting on the caller site.
+    // accept utf8 literal (u8"fooあ123") without type casting on the caller site.
     value(const char8_t* pchar) : content(std::string((const char*)pchar)) {}
 
     value(std::string_view sv) : content(std::string(sv)) {}
@@ -315,15 +322,16 @@ public:
     integer_type as_integer() const
     {
         integer_type r;
-        std::visit(([&](auto&& v) {
-                       using T = std::decay_t<decltype(v)>;
-                       if constexpr (impl::any_of_types_v<T, int, long, float, double>)
-                           r = static_cast<integer_type>(v);
-                       else {
-                           throw std::bad_cast();
-                       }
-                   }),
-                   content);
+        std::visit(
+            [&](auto&& v) {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (impl::any_of_types_v<T, int, long, float, double>)
+                    r = static_cast<integer_type>(v);
+                else {
+                    throw std::bad_cast();
+                }
+            },
+            content);
 
         return r;
     }
@@ -481,6 +489,225 @@ public:
     template <class... T>
     auto stringify5(const T&... args) const;
 
+    //*********** value Accessor ************
+
+    /**
+     * access value of supported data types without data conversion
+     *
+     * The T must match the real data type
+     */
+    template <typename T>
+    requires(!std::is_reference_v<T>) constexpr auto get_strict() const
+    {
+        using S = std::remove_cvref_t<T>;
+        if (std::holds_alternative<S>(content))
+            return std::get<S>(content);
+        else {
+            throw std::bad_cast();
+        }
+    }
+
+    /**
+     * @brief get value by explicit type: get<T>()
+     *
+     * @tparam T target data type to extract
+     * @tparam auto_conversion allow (null, numberic, boolean, string) auto conversion. default: [OFF]
+     * @return data of specified type on success, throws std::bad_cast on error
+     */
+    template <typename T, bool auto_conversion = false>
+    requires(!std::is_reference_v<T>) constexpr auto get() const
+    {
+        using R = std::remove_cvref_t<T>;
+
+        // try type conversion
+        R result;
+        std::visit(
+            [&](auto&& v) {
+                using value_t = std::remove_cvref_t<decltype(v)>;
+
+                if constexpr (impl::any_of_types_v<value_t, array_type, object_type>) {
+                    // array, object types cannot be casted to a single-value.
+                    throw std::bad_cast();
+                } else if constexpr (std::is_same_v<value_t, std::monostate>) {
+                    // null
+                    if constexpr (std::is_same_v<R, nullptr_t> || std::is_pointer_v<T>)
+                        result = nullptr; // null => null
+                    else if constexpr (!auto_conversion)
+                        throw std::bad_cast();
+                    else {                                              // auto-conversion: ON
+                        if constexpr (std::is_same_v<R, std::string>) { // null => string
+                            result = "null";
+                        } else if constexpr (std::is_same_v<R, bool>) { // null => boolean
+                            result = false;
+                        } else {
+                            throw std::bad_cast();
+                        }
+                    }
+                } else if constexpr (std::is_same_v<R, bool>) { // to boolean
+                    if constexpr (std::is_same_v<value_t, std::string>) {
+                        if constexpr (auto_conversion)
+                            result = (v == "true");
+                        else
+                            throw std::bad_cast();
+                    } else {
+                        result = (v != 0);
+                    }
+                } else if constexpr (std::is_integral_v<R> || std::is_floating_point_v<R>) { // to number
+                    if constexpr (std::is_same_v<value_t, std::string>) {                    // string => number
+                        if constexpr (!auto_conversion)
+                            throw std::bad_cast();
+                        else {
+                            if constexpr (std::is_floating_point_v<R>) {
+                                if constexpr (std::is_same_v<R, float>)
+                                    result = std::stof(v); // string => float
+                                else
+                                    result = static_cast<R>(std::stod(v)); // string => double
+                            } else {
+                                if constexpr (std::is_same_v<R, long>) // string => long
+                                    result = std::stol(v);
+                                else if constexpr (std::is_same_v<R, long long>) // string => long long
+                                    result = std::stoll(v);
+                                else if constexpr (std::is_same_v<R, int>) // string => int
+                                    result = std::stoi(v);
+                                else if constexpr (std::is_same_v<R, char>) // string => char
+                                    result = (char)std::stoi(v);            // be aware of the data loss!
+                                else {
+                                    result = static_cast<R>(std::stol(v)); // possible data loss!
+                                }
+                            }
+                        }
+                    } else { // number => number
+                        result = static_cast<R>(v);
+                    }
+                } else if constexpr (std::is_same_v<R, std::string>) { // to string
+                    if constexpr (std::is_same_v<value_t, bool>) {     // bool => string
+                        if constexpr (auto_conversion)
+                            result = v ? "true" : "false";
+                        else
+                            throw std::bad_cast();
+                    } else if constexpr (std::is_same_v<value_t, std::string>) { // string => string
+                        result = std::move(v);
+                    } else { // number => string
+                        if constexpr (auto_conversion)
+                            result = std::to_string(v); // thanks to standard api for numberic conversion
+                        else
+                            throw std::bad_cast();
+                    }
+                } else {
+                    throw std::bad_cast();
+                    // unknown types
+                    //static_assert(impl::always_false_v<T>, "get<T>: target T not supported");
+                }
+            },
+            content);
+
+        return result;
+    }
+
+    /**
+     * @brief get value by its l-reference:  get(T&)
+     *
+     * @tparam auto_conversion allow (null, numberic, boolean, string) auto conversion. default: [OFF]
+     * @tparam T target data type, which is deduced automatically by compiler
+     * @param v [output] reference of data storage for output.
+     * @return throws std::bad_cast on error
+     */
+    template <bool auto_conversion = false, typename T>
+    constexpr void get(T& v) const
+    {
+        v = this->get<T, auto_conversion>();
+    }
+
+    /**
+     * @brief get value by streaming operator >>
+     *
+     * @tparam T target data type, which is deduced automatically by compiler
+     * @param v [output] reference of data storage for output.
+     * @return throws std::bad_cast on error
+     *
+     *   WARN: data auto-conversion is disabled.
+     */
+    template <typename T>
+    constexpr void operator>>(T& v) const
+    {
+        v = this->get<T, false>();
+    }
+
+    /**
+     * @brief set value by streaming operator <<
+     *
+     * @tparam T target data type, which is deduced automatically by compiler
+     * @return reference of current value object
+     */
+    template <typename T>
+    constexpr value& operator<<(T&& v)
+    {
+        (*this) = std::forward<T>(v);
+        return *this;
+    }
+
+    //----------------------- Comparators ------------------------------------------
+    template <typename T>
+    constexpr friend bool operator==(const value& v, const T& w)
+    {
+        if constexpr (std::is_same_v<T, value>)
+            return v.content == w.content;
+        else
+            return v.get<T, false>() == w;
+    }
+    template <typename T>
+    constexpr friend bool operator>(const value& v, const T& w)
+    {
+        if constexpr (std::is_same_v<T, value>)
+            return v.content > w.content;
+        else
+            return v.get<T, false>() > w;
+    }
+    template <typename T>
+    constexpr friend bool operator>=(const value& v, const T& w)
+    {
+        if constexpr (std::is_same_v<T, value>)
+            return v.content >= w.content;
+        else
+            return v.get<T, false>() >= w;
+    }
+    template <typename T>
+    constexpr friend bool operator<(const value& v, const T& w)
+    {
+        if constexpr (std::is_same_v<T, value>)
+            return v.content < w.content;
+        else
+            return v.get<T, false>() < w;
+    }
+    template <typename T>
+    constexpr friend bool operator<=(const value& v, const T& w)
+    {
+        if constexpr (std::is_same_v<T, value>)
+            return v.content <= w.content;
+        else
+            return v.get<T, false>() <= w;
+    }
+
+    template <typename T>
+    requires(!std::is_same_v<T, value>) constexpr friend bool operator>(const T& w, const value& v)
+    {
+        return v < w;
+    }
+    template <typename T>
+    requires(!std::is_same_v<T, value>) constexpr friend bool operator>=(const T& w, const value& v)
+    {
+        return v <= w;
+    }
+    template <typename T>
+    requires(!std::is_same_v<T, value>) constexpr friend bool operator<(const T& w, const value& v)
+    {
+        return v > w;
+    }
+    template <typename T>
+    requires(!std::is_same_v<T, value>) constexpr friend bool operator<=(const T& w, const value& v)
+    {
+        return v >= w;
+    }
     /*================================================================================
      * Parse
      */
@@ -498,7 +725,7 @@ private:
 
     friend impl::stringifier<0, 0> operator<<(std::ostream& ostream, const value& v);
 
-    using content_t = std::variant<
+    std::variant<
         std::monostate,
         bool,
         int,
@@ -507,9 +734,8 @@ private:
         double,
         std::string,
         array_type,
-        object_type>;
-
-    content_t content;
+        object_type>
+        content;
 };
 
 /**
@@ -1368,7 +1594,7 @@ private:
                            ostream << "null";
                        } else if constexpr (std::is_same_v<T, bool>) {
                            ostream << (arg ? "true" : "false");
-                       } else if constexpr (impl::any_of_types_v<T, int, long, float, double>){
+                       } else if constexpr (impl::any_of_types_v<T, int, long, float, double>) {
                            if (std::isnan(arg)) {
                                if (!has_flag(flags::not_a_number)) {
                                    ostream << "null";

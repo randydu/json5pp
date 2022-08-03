@@ -1,5 +1,5 @@
 # json5pp
-JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++17**.
+JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++20**.
 
 # Features
 
@@ -8,6 +8,7 @@ JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++17**.
 * Parse [JSON5](https://json5.org/) from `std::istream` or `std::string`.
 * Stringify to `std::ostream` or `std::string` as standard JSON.
 * Stringify to `std::ostream` or `std::string` as JSON5.
+* Easy to access universal data value with all built-in type support.
 
 # Requirements
 
@@ -39,6 +40,10 @@ namespace json5pp {
 * Provides explicit cast to C++ type with `as_xxx()` method. (`xxx` is one of `null`, `boolean`, `number`, `integer`, `string`, `array` and `object`)
   * If cast failed, throws `std::bad_cast`
 * Accepts implicit cast (by overload of `operator=`) from C++ type (`nullptr_t`, `bool`, `double` | `int`, `std::string` | `const char*`)
+* Provides template type safe function to access data value with optional number <-> string auto conversion. (`get<T>()`);
+* Provides streaming operator to get (`>>`) and set (`<<`) value easily;
+* Provides compare operators (`==`, `>`, `>=`, `<`, `<=`);
+
 * See [examples](#Examples) for details
 
 ## Parse functions
@@ -253,15 +258,15 @@ using namespace std;
 
 // Construct "null" value
 json5pp::value a;               // Default constructor
-cout << a.is_null() << endl;    // => 1
+CHECK(a.is_null());
 cout << a << endl;              // => null
 
 json5pp::value b(nullptr);      // Constructor with std::nullptr_t argument
 cout << b.is_null() << endl;    // => 1
 cout << b << endl;              // => null
 
-// json5pp::value c(NULL);      // Compile error
-                                // NULL cannot be used instead of nullptr
+json5pp::value c(NULL);      // NULL is (long)0
+CHECK(c.is_integer());
 
 // Construct boolean value
 json5pp::value d(true);         // Constructor with bool argument
@@ -329,10 +334,15 @@ json5pp::value x;       // Default constructor makes null value
 cout << x << endl;      // => null
 x = false;              // Assign boolean with bool value
 cout << x << endl;      // => false
+CHECK(x == false);
+
 x = 123.45;             // Assign number with double value
-cout << x << endl;      // => 123.45
+CHECK(x == 123.45);
+CHECK(x.get<float>() == 123.45);
+
 x = 789;                // Assign number with int value
-cout << x << endl;      // => 789
+CHECK(x == 789);
+
 std::string str("bar");
 x = str;                // Assign string with const std::string& value
 cout << x << endl;      // => "bar"
@@ -385,6 +395,21 @@ using namespace std;
 json5pp::value a(true);
 auto a_value = a.as_boolean();    // decltype(a_value) => bool
 cout << a_value << endl;          // => 1
+CHECK(a_value == true);
+CHECK(a_value.get<bool>() == true);
+CHECK(a_value.as_boolean() == true);
+
+bool v;
+//read
+a_value >> v;
+CHECK(v == true);
+//set
+a_value << false
+CHECK(a_value == false);
+// assign
+v = a_value;
+CHECK(v == false);
+
 
 // Access number
 json5pp::value b(123.45);
@@ -393,10 +418,48 @@ cout << b_value1 << endl;         // => 123.45
 auto b_value2 = b.as_integer();   // decltype(b_value2) => int
 cout << b_value2 << endl;         // => 123
 
+CHECK(b.get<bool>() == true);
+CHECK(b.get<char>() == 123);
+CHECK(b.get<int>() == 123);
+CHECK(b.get<int64_t>() == 123);
+CHECK(b.get<long>() == 123);
+CHECK(b.get<int8_t>() == 123);
+CHECK(b.get<float>() == 123.45);
+CHECK(b.get<double>() == 123.45);
+CHECK_THROWS(b.get<std::string>() == "123.45"); // throw std::bad_cast (auto-conversion OFF)
+CHECK(b.get<std::string, true>() == "123.45"); //turn on auto-conversion
+
+bool v;
+b.get(v);
+CHECK(v == true);
+
+int v;
+v = b;
+CHECK(v == 123);
+
+b >> v;
+CHECK(v == 123);
+
+b.get(v);
+CHECK(v == 123);
+
+CHECK(v.get<int>() = 123);
+
+
 // Access string
 json5pp::value c("foo");
 auto c_value = c.as_string();     // decltype(c_value) => std::string
 cout << c_value << endl;          // => foo
+
+CHECK(c == "foo"); // compare with string value.
+
+std::string v;
+c >> v;
+CHECK(v == "foo");
+
+v = c;
+CHECK(v == "foo");
+
 
 // Access array
 json5pp::value d{1, "foo", false};

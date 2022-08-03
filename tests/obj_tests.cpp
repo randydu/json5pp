@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 
-
 #include <json5pp.hpp>
 
 namespace {

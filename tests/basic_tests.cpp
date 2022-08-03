@@ -1,4 +1,3 @@
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
 #include <array>
@@ -13,6 +12,30 @@ const auto tag = "[basic]";
 TEST_CASE("null", tag)
 {
     constexpr auto null_str = "null";
+
+    SECTION("init empty value")
+    {
+        {
+            json5pp::value v;
+            CHECK(v.is_null());
+        }
+        {
+            json5pp::value v{};
+            CHECK(v.is_null());
+        }
+        {
+            json5pp::value v = {};
+            CHECK(v.is_null());
+        }
+        {
+            json5pp::value v(nullptr);
+            CHECK(v.is_null());
+        }
+        {
+            json5pp::value v = nullptr;
+            CHECK(v.is_null());
+        }
+    }
 
     SECTION("stringify")
     {
@@ -87,6 +110,9 @@ TEST_CASE("integer", tag)
 
                 CHECK(v.is_integer());
                 CHECK(v.as_integer() == 1);
+
+                int x = v;
+                CHECK(x == 1);
             }
             { // int&
                 int x = 1;
@@ -98,6 +124,16 @@ TEST_CASE("integer", tag)
         }
         SECTION("copy constructor")
         {
+            {
+                json5pp::value v{1}; // the same as: v = {1}
+                CHECK(v.is_array());
+                CHECK(v[0].as_integer() == 1);
+            }
+            {
+                json5pp::value v(1);
+                CHECK(v.is_integer());
+                CHECK(v.as_integer() == 1);
+            }
             {
                 json5pp::value v = 1;
                 CHECK(v.is_integer());
@@ -136,7 +172,7 @@ TEST_CASE("integer", tag)
             json5pp::value y;
             y = std::move(x);
 
-            CHECK(x.is_integer()); //after move, the original value is not touched
+            CHECK(x.is_integer()); // after move, the original value is not touched
 
             CHECK(y.is_integer());
             CHECK(y.as_integer() == 1);
@@ -158,19 +194,20 @@ TEST_CASE("integer", tag)
         CHECK(v.is_integer());
         CHECK(v.as_integer() == 'a');
     }
-    
 }
 
 TEST_CASE("string", tag)
 {
-    SECTION("ascii"){
-        std::string hello ("Hello!");
+    SECTION("ascii")
+    {
+        std::string hello("Hello!");
         json5pp::value v(hello);
 
         CHECK(v.is_string());
         CHECK(v.as_string() == hello);
     }
-    SECTION("utf8"){
+    SECTION("utf8")
+    {
         auto s = u8"fooあ123";
         json5pp::value v = s;
 
