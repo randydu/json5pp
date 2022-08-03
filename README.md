@@ -458,7 +458,8 @@ json5pp::value c("foo");
 auto c_value = c.as_string();     // decltype(c_value) => std::string
 cout << c_value << endl;          // => foo
 
-CHECK(c == "foo"); // compare with string value.
+CHECK(c == "foo"); // compare with char[]
+CHECK(c == "foo"s); // compare with string value.
 
 std::string v;
 c >> v;

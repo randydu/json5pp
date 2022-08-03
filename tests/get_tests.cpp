@@ -152,3 +152,21 @@ TEST_CASE("null-get", tag)
     CHECK(v.get<void*>() == nullptr);
     CHECK(v.get<bool, true>() == false);
 }
+
+TEST_CASE("==", tag)
+{
+    SECTION("string")
+    {
+        using namespace std::string_literals;
+
+        json5pp::value v("Hi");
+        CHECK(v == "Hi"s);
+        CHECK(v == "Hi");
+        CHECK("Hi" == v);
+        CHECK("Hi"s == v);
+        CHECK("He"s != v);
+        CHECK("He" != v);
+
+        CHECK(json5pp::value("foo") == "foo");
+    }
+}

@@ -22,7 +22,7 @@ namespace json5pp {
 namespace version {
 static constexpr auto major = 3;
 static constexpr auto minor = 0;
-static constexpr auto patch = 0;
+static constexpr auto patch = 1;
 } // namespace version
 
 /**
@@ -596,7 +596,7 @@ public:
                 } else {
                     throw std::bad_cast();
                     // unknown types
-                    //static_assert(impl::always_false_v<T>, "get<T>: target T not supported");
+                    // static_assert(impl::always_false_v<T>, "get<T>: target T not supported");
                 }
             },
             content);
@@ -652,9 +652,12 @@ public:
     {
         if constexpr (std::is_same_v<T, value>)
             return v.content == w.content;
-        else
+        else if constexpr ((!std::is_same_v<T, std::string>)&&std::is_constructible_v<std::string, T>) {
+            return v == std::string(w);
+        } else
             return v.get<T, false>() == w;
     }
+    
     template <typename T>
     constexpr friend bool operator>(const value& v, const T& w)
     {
