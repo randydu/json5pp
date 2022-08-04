@@ -21,8 +21,8 @@ namespace json5pp {
  */
 namespace version {
 static constexpr auto major = 3;
-static constexpr auto minor = 0;
-static constexpr auto patch = 1;
+static constexpr auto minor = 1;
+static constexpr auto patch = 0;
 } // namespace version
 
 /**
@@ -650,6 +650,28 @@ public:
         }
     }
 
+    /**
+     * @brief Try getting value with processor
+     *
+     * @param t  reference to result
+     * @param f function processor, invoked when a value is read successfully
+     * @return true if the value is read successfully, false if content is null.
+     */
+    template <typename T, typename F>
+    requires std::is_invocable_v<F, T&&>
+    constexpr bool try_get(F f) const
+    {
+        if (this->is_null())
+            return false;
+        else {
+            if constexpr (std::is_invocable_r_v<bool, F, T&&>) {     // processor returns boolean
+                return f(this->get<std::remove_cvref_t<T>, true>()); // auto conversion ON
+            } else {                                                 // ignore return value of processor.
+                f(this->get<std::remove_cvref_t<T>, true>());        // auto conversion ON
+                return true;
+            }
+        }
+    }
     // Try getting value, fall back to default value if value is null.
     template <typename T>
     constexpr auto get_or(T&& def_val) const

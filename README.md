@@ -474,10 +474,22 @@ int i = 10;
 
   CHECK(v.try_get(i));
   CHECK(i == 100); //changed
+
+  //try processing non-null value
+  CHECK(v.try_get<int>([](auto&& a){
+     CHECK(a == 100);
+  }));
+
+  //try processing non-null value, respect the return value of processor.
+  CHECK_FALSE(v.try_get<int>([](auto&& a){
+     return a < 10;  // 100 < 10 => false
+  }));
+
 }
 { // try getting value, fall back to default value if null.
   CHECK(v.get_or(10) == 100);  // 
   CHECK(null.get_or(10) == 10); //fall back to default value on null type
+
 }
 
 // Access string

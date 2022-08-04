@@ -1,6 +1,8 @@
 #include <catch2/catch.hpp>
 #include <json5pp.hpp>
 
+#include <iostream>
+
 /**
  * @brief unit tests for value accessor
  *
@@ -185,6 +187,15 @@ TEST_CASE("==", tag)
     }
 }
 
+namespace {
+    bool verify_option(int a){
+        return a < 10;
+    }
+    void show_option(int a){
+        std::cout << a << std::endl;
+    }
+}
+
 TEST_CASE("try_get", tag)
 {
     json5pp::value v(100), null;
@@ -197,6 +208,16 @@ TEST_CASE("try_get", tag)
 
         CHECK(v.try_get(i));
         CHECK(i == 100); // changed
+
+        CHECK(v.try_get<int>([](auto a){ //
+            CHECK(a == 100);
+        }));
+        
+        CHECK(v.try_get<int>(show_option));
+        CHECK_FALSE(v.try_get<int>(verify_option));
+        CHECK_FALSE(v.try_get<int>([](auto){ //Respect the processor result
+            return false; 
+        }));
     }
 
     SECTION("get_or")
