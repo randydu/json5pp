@@ -157,14 +157,21 @@ TEST_CASE("integer", tag)
         }
         SECTION("copy operator")
         {
-            json5pp::value x = 1;
+            json5pp::value x = 10;
             json5pp::value y;
             y = x;
 
             CHECK(x.is_integer());
-            CHECK(x.as_integer() == 1);
+            CHECK(x.as_integer() == 10);
             CHECK(y.is_integer());
-            CHECK(y.as_integer() == 1);
+            CHECK(y.as_integer() == 10);
+
+            int i = x;
+            CHECK(i == 10);
+
+            int j;
+            j = x;
+            CHECK(j == 10);
         }
         SECTION("move operator")
         {
@@ -213,5 +220,18 @@ TEST_CASE("string", tag)
 
         CHECK(v.is_string());
         CHECK(v.as_string() == (const char*)s);
+        CHECK(v == (const char*)s);
+    }
+    SECTION("=")
+    {
+        {
+            std::string v = json5pp::value("Hello");
+            CHECK(v == "Hello");
+        }
+        {
+            std::string v;
+            v = json5pp::value("Hello");
+            CHECK(v == "Hello");
+        }
     }
 }

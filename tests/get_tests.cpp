@@ -145,6 +145,7 @@ TEST_CASE("null-get", tag)
 
     json5pp::value v;
     CHECK(v.is_null());
+    CHECK(!v);
     CHECK_THROWS(v.get<std::string>());          // no auto conversion
     CHECK(v.get<std::string, true>() == "null"); // with auto conversion
     CHECK_THROWS(v.get<int, false>() == 0);

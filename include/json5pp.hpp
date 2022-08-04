@@ -416,6 +416,7 @@ public:
         if (is_string()) return !std::get<std::string>(content).empty();
         return true; // array || object
     }
+    
 
     /*================================================================================
      * Array indexer
@@ -618,6 +619,21 @@ public:
         v = this->get<T, auto_conversion>();
     }
 
+    // short cut: to<T>() ==  get<T, true>();
+    template <typename T>
+    constexpr auto to() const
+    {
+        return this->get<T, true>();
+    }
+
+    //Explicit type convert:  (T)v == v.to<T>() == v.get<T, true>()
+    template <typename T>
+    requires (std::integral<T> || std::floating_point<T> || std::is_same_v<T, std::string>) 
+    constexpr operator T() const {
+        return this->get<T, true>();
+    }
+
+
     /**
      * @brief get value by streaming operator >>
      *
@@ -657,7 +673,7 @@ public:
         } else
             return v.get<T, false>() == w;
     }
-    
+
     template <typename T>
     constexpr friend bool operator>(const value& v, const T& w)
     {
@@ -2178,5 +2194,7 @@ auto value::stringify5(const T&... args) const
 }
 
 } /* namespace json5pp */
+
+
 
 #endif /* _JSON5PP_HPP_ */
