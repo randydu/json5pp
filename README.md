@@ -437,6 +437,9 @@ int v;
 v = b;
 CHECK(v == 123);
 
+int w = b;
+CHECK(w == 123);
+
 b >> v;
 CHECK(v == 123);
 
@@ -465,8 +468,8 @@ std::string v;
 c >> v;
 CHECK(v == "foo");
 
-v = c;
-CHECK(v == "foo");
+std::string foo = c;
+CHECK(foo == "foo");
 
 
 // Access array
