@@ -184,3 +184,22 @@ TEST_CASE("==", tag)
         CHECK(json5pp::value("foo") == "foo");
     }
 }
+
+TEST_CASE("try_get", tag)
+{
+    json5pp::value v(100), null;
+    int i = 10;
+
+    SECTION("try-get"){
+        null.try_get(i);
+        CHECK(i == 10); //unchanged
+
+        v.try_get(i);
+        CHECK(i == 100); //changed
+    }
+
+    SECTION("get_or"){
+        CHECK(v.get_or(10) == 100);
+        CHECK(null.get_or(10) == 10);
+    }
+}

@@ -464,6 +464,21 @@ CHECK(a <= b);
 CHECK(a > 0);
 CHECK(a < 1.5);
 
+//--- Get value, Default value. ---
+json5pp::value v(100), null;
+int i = 10;
+
+{//try getting value if not-null
+  null.try_get(i);
+  CHECK(i == 10); //unchanged
+
+  v.try_get(i);
+  CHECK(i == 100); //changed
+}
+{ // try getting value, fall back to default value if null.
+  CHECK(v.get_or(10) == 100);  // 
+  CHECK(null.get_or(10) == 10); //fall back to default value on null type
+}
 
 // Access string
 json5pp::value c("foo");

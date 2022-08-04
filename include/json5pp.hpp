@@ -618,7 +618,6 @@ public:
         return this->get<T, true>();
     }
 
-
     /*================================================================================
      * Truthy/falsy test
      */
@@ -633,6 +632,24 @@ public:
     //     if (is_string()) return !std::get<std::string>(content).empty();
     //     return true; // array || object
     // }
+
+    // Try getting value if not null.
+    template <typename T>
+    constexpr void try_get(T& t) const
+    {
+        if (!this->is_null())
+            t = this->get<std::remove_cvref_t<T>, true>(); // auto conversion ON
+    }
+
+    // Try getting value, fall back to default value if value is null.
+    template <typename T>
+    constexpr auto get_or(T&& def_val) const
+    {
+        if (this->is_null())
+            return def_val;
+        else
+            return this->get<std::remove_cvref_t<T>, true>(); // auto conversion ON
+    }
 
     /**
      * @brief get value by streaming operator >>
