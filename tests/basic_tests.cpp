@@ -229,9 +229,22 @@ TEST_CASE("string", tag)
             CHECK(v == "Hello");
         }
         {
+            json5pp::value x("Hello");
             std::string v;
-            v = json5pp::value("Hello");
+            // compile error: ambugious overload for 'string::operator='
+            // v = json5pp::value("Hello");
+            v = x.as_string();
             CHECK(v == "Hello");
+
+            bool b = x;
+            CHECK_FALSE(b);
+            
+            b = x;
+            CHECK_FALSE(b);
+
+            x = "true";
+            b = x;
+            CHECK(b);
         }
     }
 }

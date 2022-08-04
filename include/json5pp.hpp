@@ -402,21 +402,6 @@ public:
         return std::get<object_type>(content);
     }
 
-    /*================================================================================
-     * Truthy/falsy test
-     */
-    constexpr operator bool() const
-    {
-        if (is_null()) return false;
-        if (is_boolean()) return std::get<bool>(content);
-        if (is_number()) {
-            auto v = this->as_number();
-            return (v != 0) && (!std::isnan(v));
-        }
-        if (is_string()) return !std::get<std::string>(content).empty();
-        return true; // array || object
-    }
-    
 
     /*================================================================================
      * Array indexer
@@ -628,11 +613,26 @@ public:
 
     //Explicit type convert:  (T)v == v.to<T>() == v.get<T, true>()
     template <typename T>
-    requires (std::integral<T> || std::floating_point<T> || std::is_same_v<T, std::string>) 
+    requires ((!std::is_reference_v<T>) && (std::integral<T> || std::floating_point<T> || std::is_same_v<T, std::string>))
     constexpr operator T() const {
         return this->get<T, true>();
     }
 
+
+    /*================================================================================
+     * Truthy/falsy test
+     */
+    // constexpr operator bool() const
+    // {
+    //     if (is_null()) return false;
+    //     if (is_boolean()) return std::get<bool>(content);
+    //     if (is_number()) {
+    //         auto v = this->as_number();
+    //         return (v != 0) && (!std::isnan(v));
+    //     }
+    //     if (is_string()) return !std::get<std::string>(content).empty();
+    //     return true; // array || object
+    // }
 
     /**
      * @brief get value by streaming operator >>
