@@ -469,10 +469,10 @@ json5pp::value v(100), null;
 int i = 10;
 
 {//try getting value if not-null
-  null.try_get(i);
+  CHECK(null.try_get(i) == false);
   CHECK(i == 10); //unchanged
 
-  v.try_get(i);
+  CHECK(v.try_get(i));
   CHECK(i == 100); //changed
 }
 { // try getting value, fall back to default value if null.

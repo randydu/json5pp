@@ -633,12 +633,21 @@ public:
     //     return true; // array || object
     // }
 
-    // Try getting value if not null.
+    /**
+     * @brief Try getting value
+     *
+     * @param t  reference to result
+     * @return true if the value is read successfully, false if content is null.
+     */
     template <typename T>
-    constexpr void try_get(T& t) const
+    constexpr bool try_get(T& t) const
     {
-        if (!this->is_null())
+        if (this->is_null())
+            return false;
+        else {
             t = this->get<std::remove_cvref_t<T>, true>(); // auto conversion ON
+            return true;
+        }
     }
 
     // Try getting value, fall back to default value if value is null.
