@@ -54,6 +54,19 @@ TEST_CASE("null", tag)
 
 TEST_CASE("boolean", tag)
 {
+    SECTION("bool test")
+    {
+        {
+            json5pp::value v{1, 2};
+            CHECK(v.is_array());
+            CHECK(v);
+        }
+        {
+            auto v = json5pp::object({{"name", "xxx"}});
+            CHECK(v.is_object());
+            CHECK(v);
+        }
+    }
     SECTION("stringify")
     {
         {
@@ -238,7 +251,7 @@ TEST_CASE("string", tag)
 
             bool b = x;
             CHECK_FALSE(b);
-            
+
             b = x;
             CHECK_FALSE(b);
 

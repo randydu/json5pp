@@ -22,7 +22,7 @@ namespace json5pp {
 namespace version {
 static constexpr auto major = 3;
 static constexpr auto minor = 1;
-static constexpr auto patch = 0;
+static constexpr auto patch = 1;
 } // namespace version
 
 /**
@@ -512,8 +512,11 @@ public:
                 using value_t = std::remove_cvref_t<decltype(v)>;
 
                 if constexpr (impl::any_of_types_v<value_t, array_type, object_type>) {
-                    // array, object types cannot be casted to a single-value.
-                    throw std::bad_cast();
+                    // array, object types cannot be casted to a single-value except boolean.
+                    if constexpr (std::is_same_v<R, bool>)
+                        result = true;
+                    else
+                        throw std::bad_cast();
                 } else if constexpr (std::is_same_v<value_t, std::monostate>) {
                     // null
                     if constexpr (std::is_same_v<R, nullptr_t> || std::is_pointer_v<T>)

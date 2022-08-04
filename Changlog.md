@@ -1,5 +1,9 @@
 # Change Log
 
+## v3.1.1
+
+- fix Truthy test for object/array type;
+
 ## v3.1.0
 
 - adds type conversion template function: v.to<T>();

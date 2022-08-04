@@ -218,6 +218,10 @@ TEST_CASE("try_get", tag)
         CHECK_FALSE(v.try_get<int>([](auto){ //Respect the processor result
             return false; 
         }));
+
+        CHECK(v.to<std::string>() == "100");
+        CHECK_THROWS(v.get<std::string>() == "100");
+        CHECK(v.get<std::string, true>() == "100");
     }
 
     SECTION("get_or")
