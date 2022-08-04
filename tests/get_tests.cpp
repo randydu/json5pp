@@ -130,11 +130,24 @@ TEST_CASE("<<", tag)
         CHECK(0 < v);
         CHECK(0 <= v);
 
-        json5pp::value w = 2;
-        CHECK_FALSE(v == w);
-        CHECK(v != w);
-        CHECK(v < w);
-        CHECK(v <= w);
+        {
+            json5pp::value w = 2;
+            CHECK_FALSE(v == w);
+            CHECK(v != w);
+            CHECK(v < w);
+            CHECK(v <= w);
+        }
+
+        {
+            int i;
+            json5pp::value w(10);
+            i << w;
+            CHECK(i == 10);
+
+            int j;
+            w >> j;
+            CHECK(j == 10);
+        }
     }
 }
 

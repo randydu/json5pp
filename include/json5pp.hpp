@@ -611,10 +611,10 @@ public:
         return this->get<T, true>();
     }
 
-    //Explicit type convert:  (T)v == v.to<T>() == v.get<T, true>()
+    // Explicit type convert:  (T)v == v.to<T>() == v.get<T, true>()
     template <typename T>
-    requires ((!std::is_reference_v<T>) && (std::integral<T> || std::floating_point<T> || std::is_same_v<T, std::string>))
-    constexpr operator T() const {
+    requires((!std::is_reference_v<T>)&&(std::integral<T> || std::floating_point<T> || std::is_same_v<T, std::string>)) constexpr operator T() const
+    {
         return this->get<T, true>();
     }
 
@@ -647,6 +647,12 @@ public:
     constexpr void operator>>(T& v) const
     {
         v = this->get<T, false>();
+    }
+
+    template <typename T>
+    constexpr friend void operator<<(T& t, const value& v)
+    {
+        v >> t;
     }
 
     /**
@@ -2194,7 +2200,6 @@ auto value::stringify5(const T&... args) const
 }
 
 } /* namespace json5pp */
-
 
 
 #endif /* _JSON5PP_HPP_ */

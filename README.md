@@ -400,9 +400,18 @@ CHECK(a_value.get<bool>() == true);
 CHECK(a_value.as_boolean() == true);
 
 bool v;
-//read
+//read with stream operator >>
 a_value >> v;
 CHECK(v == true);
+
+//read with stream operator <<
+v << a_value;
+CHECK(v);
+
+//read with operator =
+v = a_value;
+CHECK(v);
+
 //set
 a_value << false
 CHECK(a_value == false);
