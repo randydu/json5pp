@@ -249,12 +249,12 @@ public:
     /**
      * @brief Check if type of stored value is number (includes integer).
      */
-    constexpr bool is_number() const noexcept { return impl::hold_types<int, long, float, double>(content); }
+    constexpr bool is_number() const noexcept { return impl::hold_types<int, long, long long, float, double>(content); }
 
     /**
      * @brief Check if type of stored value is integer.
      */
-    constexpr bool is_integer() const noexcept { return impl::hold_types<int, long>(content); }
+    constexpr bool is_integer() const noexcept { return impl::hold_types<int, long, long long>(content); }
 
     /**
      * @brief Check if type of stored value is string.
@@ -310,7 +310,7 @@ public:
         number_type r;
         std::visit(([&](auto&& v) {
                        using T = std::decay_t<decltype(v)>;
-                       if constexpr (impl::any_of_types_v<T, int, long, float, double>)
+                       if constexpr (impl::any_of_types_v<T, int, long, long long, float, double>)
                            r = static_cast<number_type>(v);
                        else {
                            throw std::bad_cast();
@@ -332,7 +332,7 @@ public:
         std::visit(
             [&](auto&& v) {
                 using T = std::decay_t<decltype(v)>;
-                if constexpr (impl::any_of_types_v<T, int, long, float, double>)
+                if constexpr (impl::any_of_types_v<T, int, long, long long, float, double>)
                     r = static_cast<integer_type>(v);
                 else {
                     throw std::bad_cast();
@@ -813,6 +813,7 @@ private:
         bool,
         int,
         long,
+        long long,
         float,
         double,
         std::string,
@@ -1677,7 +1678,7 @@ private:
                            ostream << "null";
                        } else if constexpr (std::is_same_v<T, bool>) {
                            ostream << (arg ? "true" : "false");
-                       } else if constexpr (impl::any_of_types_v<T, int, long, float, double>) {
+                       } else if constexpr (impl::any_of_types_v<T, int, long, long long, float, double>) {
                            // MSVC does not support std::isnan(integer-type)!
                            if constexpr (!is_msvc || impl::any_of_types_v<T, float, double>) {
                                if (std::isnan(arg)) {
