@@ -46,6 +46,13 @@ public:
 
 namespace impl {
 
+
+#if defined(_MSC_VER)
+inline constexpr bool is_msvc = true;
+#else
+inline constexpr bool is_msvc = false;
+#endif
+
 template <typename T>
 inline constexpr bool always_false_v = false;
 
@@ -1169,7 +1176,7 @@ private:
     void parse_number(value& v, int ch)
     {
         static const char context[] = "number";
-        unsigned long long int_part = 0;
+        long long int_part = 0;
         unsigned long long frac_part = 0;
         int frac_divs = 0;
         int exp_part = 0;
@@ -1671,21 +1678,27 @@ private:
                        } else if constexpr (std::is_same_v<T, bool>) {
                            ostream << (arg ? "true" : "false");
                        } else if constexpr (impl::any_of_types_v<T, int, long, float, double>) {
-                           if (std::isnan(arg)) {
-                               if (!has_flag(flags::not_a_number)) {
-                                   ostream << "null";
-                               } else {
-                                   ostream << "NaN";
+                           // MSVC does not support std::isnan(integer-type)!
+                           if constexpr (!is_msvc || impl::any_of_types_v<T, float, double>) {
+                               if (std::isnan(arg)) {
+                                   if (!has_flag(flags::not_a_number)) {
+                                       ostream << "null";
+                                   } else {
+                                       ostream << "NaN";
+                                   }
+                                   return;
                                }
-                           } else if (!std::isfinite(arg)) {
-                               if (!has_flag(flags::infinity_number)) {
-                                   ostream << "null";
-                               } else {
-                                   ostream << ((arg > 0) ? "infinity" : "-infinity");
+
+                               if (!std::isfinite(arg)) {
+                                   if (!has_flag(flags::infinity_number)) {
+                                       ostream << "null";
+                                   } else {
+                                       ostream << ((arg > 0) ? "infinity" : "-infinity");
+                                   }
+                                   return;
                                }
-                           } else {
-                               ostream << arg;
                            }
+                           ostream << arg;
                        } else if constexpr (std::is_same_v<T, std::string>) {
                            stringify_string(std::get<std::string>(v.content));
                        } else if constexpr (std::is_same_v<T, value::object_type>) {
