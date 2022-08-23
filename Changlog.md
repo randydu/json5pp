@@ -3,6 +3,7 @@
 ## v3.1.1
 
 - fix Truthy test for object/array type;
+- fix compile issue for VC2022;
 
 ## v3.1.0
 
