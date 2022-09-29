@@ -1,5 +1,13 @@
 # Change Log
 
+## v3.2.0
+
+- change the include path, it is now recommended to include the header file like so:
+
+```cpp
+#include <json5pp/json5pp.h>
+```
+
 ## v3.1.1
 
 - fix Truthy test for object/array type;
