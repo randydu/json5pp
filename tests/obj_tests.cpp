@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include <json5pp.hpp>
+#include <json5pp/json5pp.hpp>
 
 namespace {
 const auto tag = "[obj]";

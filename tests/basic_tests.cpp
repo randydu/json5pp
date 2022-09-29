@@ -3,7 +3,7 @@
 #include <array>
 #include <string>
 
-#include <json5pp.hpp>
+#include <json5pp/json5pp.hpp>
 
 namespace {
 const auto tag = "[basic]";

@@ -20,6 +20,10 @@ JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++20**.
 
 # API
 
+```cpp
+#include <json5pp/json5pp.hpp>
+```
+
 ## JSON value type
 
 ```cpp
