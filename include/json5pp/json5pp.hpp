@@ -1871,11 +1871,11 @@ stringifier<0, I> operator<<(std::ostream& ostream, const manipulator_indent<I>&
  * @param args Other manipulators / values
  */
 template <class S, class T, class... Args>
-static void flow_stringifier(S stringifier, T& value, const Args&... args)
+static void flow_stringifier(S&& stringifier, const T& value, const Args&... args)
 {
-    auto& r = stringifier << value;
+    auto r = stringifier << value;
     if constexpr (sizeof...(Args) > 0) {
-        flow_stringifier(r, args...);
+        flow_stringifier(std::move(r), args...);
     }
 }
 

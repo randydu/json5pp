@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string>
+#include <iostream>
 
 #include <json5pp/json5pp.hpp>
 
@@ -260,4 +261,21 @@ TEST_CASE("string", tag)
             CHECK(b);
         }
     }
+}
+
+TEST_CASE("manipulators", tag)
+{
+    const auto x = json5pp::object({{"name", "Tom"}});
+    std::string s1, s2;
+    {
+        std::stringstream stm;
+        stm << json5pp::rule::space_indent<2>() << x;
+        s1 = stm.str();
+    }
+    {
+        std::stringstream stm;
+        stm << x.stringify5(json5pp::rule::space_indent<2>());
+        s2 = stm.str();
+    }
+    CHECK(s1 == s2);
 }

@@ -1,5 +1,10 @@
 # Change Log
 
+## v3.2.1
+
+fix compile issue for string manipulators;
+
+
 ## v3.2.0
 
 - change the include path, it is now recommended to include the header file like so:
