@@ -1,4 +1,5 @@
 # json5pp
+
 JSON (ECMA-404 and JSON5) parser &amp; stringifier written in **C++20**.
 
 # Features
@@ -32,6 +33,7 @@ namespace json5pp {
   };
 }
 ```
+
 * The class holds a value which is represented in JSON.
 * This class can hold all types in JSON:
   * `null`
@@ -48,7 +50,7 @@ namespace json5pp {
 * Provides streaming operator to get (`>>`) and set (`<<`) value easily;
 * Provides compare operators (`==`, `>`, `>=`, `<`, `<=`);
 
-* See [examples](#Examples) for details
+* See [examples](#examples) for details
 
 ## Parse functions
 
@@ -57,6 +59,7 @@ namespace json5pp {
   value parse(const std::string& str);
 }
 ```
+
 * Parse given string.
 * String must be a valid JSON (ECMA-404 standard)
   * If not valid, throws `json5pp::syntax_error`.
@@ -68,6 +71,7 @@ namespace json5pp {
   value parse(std::istream& istream, bool finish = true)
 }
 ```
+
 * Parse JSON from given input stream.
 * Stream must have a valid JSON (ECMA-404 standard).
   * If not valid, throws `json5pp::syntax_error`.
@@ -78,6 +82,7 @@ namespace json5pp {
   value parse5(const std::string& str);
 }
 ```
+
 * JSON5 version of `parse(const std::string&)`
 
 ```cpp
@@ -85,6 +90,7 @@ namespace json5pp {
   value parse5(std::istream& istream, bool finish = true);
 }
 ```
+
 * JSON5 version of `parse(std::istream&, bool)`
 
 ## Stringify functions
@@ -97,6 +103,7 @@ namespace json5pp {
   };
 }
 ```
+
 * Stringify value to ECMA-404 standard JSON.
 * About `T... manip`, see [iostream overloads and manipulators](#iostream-API-and-manipulators)
 
@@ -108,6 +115,7 @@ namespace json5pp {
   };
 }
 ```
+
 * Stringify value to JSON5.
 * About `T... manip`, see [iostream overloads and manipulators](#iostream-API-and-manipulators)
 
@@ -117,6 +125,7 @@ namespace json5pp {
   std::string stringify(const value& v, T... manip);
 }
 ```
+
 * Global method version of `json5pp::value::stringify()`
 * Same as `v.stringify(manip...)`
 
@@ -126,12 +135,14 @@ namespace json5pp {
   std::string stringify5(const value& v, T... manip);
 }
 ```
+
 * Global method version of `json5pp::value::stringify5()`
 * Same as `v.stringify5(manip...)`
 
 ## iostream API
 
 ### Parse by `operator>>`
+
 ```cpp
 std::istream& istream = ...;
 json5pp::value v;
@@ -139,6 +150,7 @@ istream >> v;
 ```
 
 ### Parse by `operator>>` with manipulators
+
 ```cpp
 std::istream& istream = ...;
 json5pp::value v;
@@ -146,6 +158,7 @@ istream >> json5pp::rule::json5() >> v; // Parse as JSON5
 ```
 
 ### Stringify by `operator<<`
+
 ```cpp
 std::ostream& ostream = ...;
 const json5pp::value& v = ...;
@@ -153,6 +166,7 @@ ostream << v;
 ```
 
 ### Stringify by `operator<<` with manipulators
+
 ```cpp
 std::ostream& ostream = ...;
 const json5pp::value& v = ...;
@@ -163,6 +177,7 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
 ## Manipulators
 
 ### Comments
+
 * `json5pp::rule::single_line_comment()`
 * `json5pp::rule::no_single_line_comment()`
   * Allow/disallow single line comment starts with `//`
@@ -174,6 +189,7 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
   * Combination of `single_line_comment` and `multi_line_comment`
 
 ### Numbers
+
 * `json5pp::rule::explicit_plus_sign()`
 * `json5pp::rule::no_explicit_plus_sign()`
   * Allow/disallow explicit plus sign (`+`) before non-negative number (ex: `+123`)
@@ -197,6 +213,7 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
   * Allow/disallow hexadecimal number (ex: `0x123`)
 
 ### Strings
+
 * `json5pp::rule::single_quote()`
 * `json5pp::rule::no_single_quote()`
   * Allow/disallow single quoted string (ex: `'foobar'`)
@@ -204,12 +221,14 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
 * `json5pp::rule::no_multi_line_string()`
   * Allow/disallow multiple line string escaped by `\`
   * Example:
+
     ```json
     "test\
     2nd line"
     ```
 
 ### Arrays and objects
+
 * `json5pp::rule::trailing_comma()`
 * `json5pp::rule::no_trailing_comma()`
   * Allow/disallow trailing comma at the end of arrays or objects.
@@ -217,17 +236,20 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
   * Example for objects: `{"a":123,}`
 
 ### Objects
+
 * `json5pp::rule::unquoted_key()`
 * `json5pp::rule::no_unquoted_key()`
   * Allow/disallow unquoted keys in objects. (ex: `{a:123}`)
 
 ### Rule sets
+
 * `json5pp::rule::ecma404()`
   * ECMA-404 standard rule set.
 * `json5pp::rule::json5()`
   * JSON5 rule set.
 
 ### Parse options
+
 * `json5pp::rule::finished()`
   * Parse as finished (closed) JSON. If any junk data follows after JSON, parse fails.
   * Opposite to `json5pp::rule::streaming()`
@@ -236,6 +258,7 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
   * Opposite to `json5pp::rule::finished()`
 
 ### Stringify options
+
 * `json5pp::rule::lf_newline()`
   * When indent is enabled, use LF(`\n`) as new-line code.
   * Opposite to `json5pp::rule::crlf_newline`
@@ -250,7 +273,7 @@ ostream << json5pp::rule::space_indent<2>() << v; // Stringify with 2-space inde
   * If `L` is omitted, treat as `L=1`.
 * `json5pp::rule::space_indent<L>()`
   * Enable indent with space character(s).
-  * `L` means a number of space (` `) characters for one-level indent.
+  * `L` means a number of space (``) characters for one-level indent.
   * If `L` is omitted, treat as `L=2`.
 
 ## Examples
@@ -331,6 +354,7 @@ cout << m << endl;              // => {"bar":123,"foo":"baz"}
 ```
 
 ### Changing `value` object
+
 ```cpp
 using namespace std;
 
@@ -392,6 +416,7 @@ cout << y << endl;      // => {"baz":123,"foo":"bar"} (Contents does NOT change)
 ```
 
 ### Accessing `value` object
+
 ```cpp
 using namespace std;
 
@@ -589,7 +614,63 @@ std::optional<int> i;
 }
 ```
 
+#### Compose Array Value
+
+```c++
+json5pp::value v = json5pp::array();
+CHECK(v.size() == 0);
+CHECK(v.empty());
+
+v.append(1).append("abc");
+CHECK(v.size() == 2);
+CHECK(v[0] == 1);
+CHECK(v[1] == "abc");
+
+v.erase(0);
+CHECK(v.size() == 1);
+CHECK(v[0] == "abc");
+
+v.clear();
+CHECK(v.empty());
+```
+
+#### Compose Object Value
+
+```c++
+  json5pp::value v = json5pp::object();
+  CHECK(v.is_object());
+
+
+  SECTION("adds a propery")
+  {
+      CHECK(v["name"].is_null()); // operator[] adds a new property with null value.
+      v["name"] = 1;
+      CHECK(v["name"].is_number());
+      CHECK(v["name"].get<int>() == 1);
+      v.clear();
+      CHECK(v.empty());
+  }
+
+  SECTION("remove a property")
+  {
+      v["age"] = 100;
+
+      CHECK(v.contains("age")); // has property "age"
+      v.erase("age"); //delete a property
+      
+      // object does not have the property.
+      // in javascript, it means v.age === undefined
+      CHECK(!v.contains("age"));
+      CHECK(v.empty());
+
+      // operator[] adds a new property with a null value.
+      // in javascript, it means v.age === null
+      CHECK(v["age"].is_null());
+  }
+```
+
 ### Parse
+
 ```cpp
 using namespace std;
 
@@ -607,6 +688,7 @@ cout << y["foo"][1].as_string() << endl;  // => baz
 ```
 
 ### Stringify
+
 ```cpp
 using namespace std;
 

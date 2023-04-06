@@ -188,13 +188,15 @@ TEST_CASE("==", tag)
 }
 
 namespace {
-    bool verify_option(int a){
-        return a < 10;
-    }
-    void show_option(int a){
-        std::cout << a << std::endl;
-    }
+bool verify_option(int a)
+{
+    return a < 10;
 }
+void show_option(int a)
+{
+    std::cout << a << std::endl;
+}
+} // namespace
 
 TEST_CASE("try_get", tag)
 {
@@ -209,14 +211,14 @@ TEST_CASE("try_get", tag)
         CHECK(v.try_get(i));
         CHECK(i == 100); // changed
 
-        CHECK(v.try_get<int>([](auto a){ //
+        CHECK(v.try_get<int>([](auto a) { //
             CHECK(a == 100);
         }));
-        
+
         CHECK(v.try_get<int>(show_option));
         CHECK_FALSE(v.try_get<int>(verify_option));
-        CHECK_FALSE(v.try_get<int>([](auto){ //Respect the processor result
-            return false; 
+        CHECK_FALSE(v.try_get<int>([](auto) { // Respect the processor result
+            return false;
         }));
 
         CHECK(v.to<std::string>() == "100");

@@ -1,5 +1,12 @@
 # Change Log
 
+## v3.4.0
+
+* adds array / object modifiers.
+  reset(), clear(), size(), empty(), erase(), append(), [n | key] = v;
+
+* reformat legacy tests;
+
 ## v3.3.0
 
 adds std::optional<T> value getter;

@@ -35,3 +35,35 @@ TEST_CASE("parse", tag)
         }
     }
 }
+
+TEST_CASE("Modifier", tag)
+{
+    json5pp::value v = json5pp::object();
+    CHECK(v.is_object());
+
+    SECTION("adds a propery")
+    {
+        CHECK(v["name"].is_null());
+        v["name"] = 1;
+        CHECK(v["name"].is_number());
+        CHECK(v["name"].get<int>() == 1);
+        v.clear();
+        CHECK(v.empty());
+    }
+
+    SECTION("remove a property")
+    {
+        v["age"] = 100;
+
+        CHECK(v.contains("age"));
+        v.erase("age");
+        // object does not have the property.
+        // in javascript, it means v.age === undefined
+        CHECK(!v.contains("age"));
+        CHECK(v.empty());
+
+        // operator[] adds a new property with a null value.
+        // in javascript, it means v.age === null
+        CHECK(v["age"].is_null());
+    }
+}

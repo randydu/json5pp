@@ -234,6 +234,42 @@ public:
     friend value array(std::initializer_list<value> elements);
     friend value object(std::initializer_list<pair_type> elements);
 
+    // reset value to null
+    void reset()
+    {
+        content = {};
+    }
+
+    // remove all elements of array or object type
+    void clear()
+    {
+        if (is_array()) {
+            as_array().clear();
+        } else if (is_object()) {
+            as_object().clear();
+        } else {
+            throw std::runtime_error("clear() is only supported by array or object value");
+        }
+    }
+
+    // get total number of elements in an array -or-
+    // get total number of properties in an object
+    std::size_t size() const
+    {
+        if (is_array()) {
+            return as_array().size();
+        } else if (is_object()) {
+            return as_object().size();
+        } else {
+            throw std::runtime_error("size() is only supported by array or object value");
+        }
+    }
+
+    // Test for empty array or object value.
+    inline bool empty() const
+    {
+        return size() == 0;
+    }
     /*================================================================================
      * Type checks
      */
@@ -436,6 +472,29 @@ public:
         return at(index);
     }
 
+    //***** Array modifiers *****
+    value& at(const int index)
+    {
+        assert(is_array());
+        auto& ar = std::get<array_type>(content);
+        return ar.at(index);
+    }
+
+    inline value& operator[](const int index)
+    {
+        return at(index);
+    }
+
+    // adds a value to the array
+    template <typename T>
+    value& append(T&& v)
+    {
+        assert(is_array());
+        auto& ar = std::get<array_type>(content);
+        ar.emplace_back(std::move(v));
+        return *this;
+    }
+
     /*================================================================================
      * Object indexer
      */
@@ -475,6 +534,47 @@ public:
     const value& operator[](const string_p_type key) const
     {
         return at(string_type(key));
+    }
+
+    //***** Object modifiers *****
+    value& at(const string_type& key)
+    {
+        assert(is_object());
+        auto& obj = std::get<object_type>(content);
+        return obj[key];
+    }
+
+    inline value& operator[](const string_p_type key)
+    {
+        return at(string_type(key));
+    }
+
+    inline value& operator[](const string_type& key)
+    {
+        return at(key);
+    }
+
+    // Test if a key exists in the object value.
+    // Note: A property with a null value (v.is_null()) is also counted as an existing propery.
+    bool contains(const string_type& key) const
+    {
+        assert(is_object());
+        return std::get<object_type>(content).contains(key);
+    }
+
+    // Remove a key from object value
+    void erase(const string_type& key)
+    {
+        assert(is_object());
+        std::get<object_type>(content).erase(key);
+    }
+
+    // Remove an element from array value
+    void erase(const int index)
+    {
+        assert(is_array());
+        auto& v = std::get<array_type>(content);
+        v.erase(v.begin() + index);
     }
 
     template <class... T>
@@ -840,7 +940,7 @@ private:
  * @param elements An initializer list of elements
  * @return JSON value object
  */
-inline value array(std::initializer_list<value> elements)
+inline value array(std::initializer_list<value> elements = {})
 {
     return value(std::move(elements));
 }
@@ -851,7 +951,7 @@ inline value array(std::initializer_list<value> elements)
  * @param elements An initializer list of key:value pairs
  * @return JSON value object
  */
-inline value object(std::initializer_list<value::pair_type> elements)
+inline value object(std::initializer_list<value::pair_type> elements = {})
 {
     return value(std::move(elements));
 }

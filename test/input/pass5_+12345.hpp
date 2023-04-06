@@ -2,5 +2,5 @@
 
 static bool verify(const json5pp::value& value)
 {
-  return value.as_number() == 12345;
+    return value.as_number() == 12345;
 }

@@ -2,5 +2,5 @@
 
 static bool verify(const json5pp::value& value)
 {
-  return value.as_boolean() == false;
+    return value.as_boolean() == false;
 }
