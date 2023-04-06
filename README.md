@@ -573,6 +573,22 @@ cout << (bool)falsy5 << endl;  // => 0
 cout << (bool)falsy6 << endl;  // => 0
 ```
 
+#### Accessing optional value
+
+```c++
+std::optional<int> i;
+
+{
+  json5pp::value jv(100);
+  jv.get(i); // i.value() == 100
+}
+
+{
+  json5pp::value jv;
+  jv.get(i); // i.has_value() == false
+}
+```
+
 ### Parse
 ```cpp
 using namespace std;

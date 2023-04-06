@@ -12,6 +12,7 @@
 #include <streambuf>
 #include <concepts>
 #include <variant>
+#include <optional>
 
 namespace json5pp {
 
@@ -690,6 +691,17 @@ public:
             return def_val;
         else
             return this->get<std::remove_cvref_t<T>, true>(); // auto conversion ON
+    }
+
+    // Optional<T> support
+    template <typename T>
+    constexpr auto get(std::optional<T>& v) const
+    {
+        if (this->is_null()) {
+            v.reset();
+        } else {
+            v = this->get<std::remove_cvref_t<T>, true>(); // auto conversion ON
+        }
     }
 
     /**

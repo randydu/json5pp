@@ -279,3 +279,17 @@ TEST_CASE("manipulators", tag)
     }
     CHECK(s1 == s2);
 }
+
+TEST_CASE("optional", tag)
+{
+    std::optional<int> i;
+
+    json5pp::value(100).get(i);
+    CHECK(i == 100);
+
+    json5pp::value("200").get(i); // auto-conversion is ON
+    CHECK(i == 200);
+
+    json5pp::value().get(i);
+    CHECK(!i);
+}

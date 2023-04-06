@@ -1,5 +1,18 @@
 # Change Log
 
+## v3.3.0
+
+adds std::optional<T> value getter;
+
+```c++
+std::optional<int> x;
+
+json5pp::value jv;
+jv.get(x);
+assert(!x);
+```
+
+
 ## v3.2.1
 
 fix compile issue for string manipulators;
