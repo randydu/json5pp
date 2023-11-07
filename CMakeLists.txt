@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2...3.16)
 
-project(json5pp VERSION 3.2.0 LANGUAGES CXX)
+project(json5pp VERSION 3.4.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 

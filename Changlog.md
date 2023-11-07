@@ -1,5 +1,30 @@
 # Change Log
 
+## v3.4.0
+
+* adds array / object modifiers.
+  reset(), clear(), size(), empty(), erase(), append(), [n | key] = v;
+
+* reformat legacy tests;
+
+## v3.3.0
+
+adds std::optional<T> value getter;
+
+```c++
+std::optional<int> x;
+
+json5pp::value jv;
+jv.get(x);
+assert(!x);
+```
+
+
+## v3.2.1
+
+fix compile issue for string manipulators;
+
+
 ## v3.2.0
 
 - change the include path, it is now recommended to include the header file like so:
