@@ -1,5 +1,9 @@
 # Change Log
 
+## v3.4.1
+
+FIX: adds missing assert header.
+
 ## v3.4.0
 
 * adds array / object modifiers.

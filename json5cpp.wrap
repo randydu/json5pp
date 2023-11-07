@@ -2,7 +2,7 @@
 
 directory = json5cpp
 url=git@github.com:randydu/json5pp.git
-revision = v3.4.0
+revision = v3.4.1
 clone-recursive = false
 
 [provide]

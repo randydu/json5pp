@@ -13,6 +13,7 @@
 #include <concepts>
 #include <variant>
 #include <optional>
+#include <cassert>
 
 namespace json5pp {
 
